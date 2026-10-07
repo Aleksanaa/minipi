@@ -5,7 +5,7 @@
 
 import type { AppKeybinding, Theme } from "@earendil-works/pi-coding-agent";
 import { type Component, matchesKey, type TUI, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
-import { state } from "./status.ts";
+import { KEY, state } from "./status.ts";
 
 export interface LeaderEntry {
 	key: string;
@@ -108,7 +108,7 @@ export function whichKeyWidget(entries: LeaderEntry[]) {
 				for (let c = 0; c < cols; c++) {
 					const e = entries[c * rows + r];
 					if (!e) break;
-					const cell = `${theme.fg("accent", theme.bold(e.key))} ${theme.fg("muted", e.label)}`;
+					const cell = `${theme.fg(KEY, theme.bold(e.key))} ${theme.fg("text", e.label)}`;
 					line += cell + " ".repeat(Math.max(1, cellW + 1 - visibleWidth(cell)));
 				}
 				out.push(truncateToWidth(line.trimEnd(), width, ""));
@@ -122,9 +122,9 @@ export function whichKeyWidget(entries: LeaderEntry[]) {
 // Help overlay
 
 function helpLines(theme: Theme): string[] {
-	const h = (s: string) => theme.fg("accent", theme.bold(s));
+	const h = (s: string) => theme.bold(s);
 	// 2 + 21 + longest description (39) still fits 66 columns.
-	const k = (keys: string, desc: string) => `  ${theme.fg("warning", keys.padEnd(21))}${theme.fg("text", desc)}`;
+	const k = (keys: string, desc: string) => `  ${theme.fg(KEY, keys.padEnd(21))}${theme.fg("text", desc)}`;
 	const leader = LEADER.map((e) => k(`SPC ${e.key}`, e.label));
 	return [
 		h("NORMAL  (Esc from insert)"),

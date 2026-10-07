@@ -56,7 +56,7 @@ export function todoWidget(_tui: unknown, theme: Theme): Component {
 				return rows;
 			}
 			if (!next) return [];
-			const head = `${theme.fg("muted", "todo")} ${theme.fg("accent", `${done}/${total}`)} ${theme.fg("muted", ">")} `;
+			const head = `${theme.fg("muted", "todo")} ${theme.fg("text", `${done}/${total}`)} ${theme.fg("muted", ">")} `;
 			return [truncateToWidth(head + theme.fg("text", next.text), width, "…")];
 		},
 	};

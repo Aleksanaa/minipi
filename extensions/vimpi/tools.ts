@@ -96,7 +96,7 @@ function subject(name: string, args: Args, cwd: string, theme: Theme, room: numb
 	}
 	if (name === "grep" || name === "find") {
 		const where = args?.path ? ` ${displayPath(args.path, cwd)}` : "";
-		return theme.fg("accent", truncMid(`${args?.pattern ?? "…"}`, room - where.length)) + theme.fg("muted", where);
+		return theme.fg("text", truncMid(`${args?.pattern ?? "…"}`, room - where.length)) + theme.fg("accent", where);
 	}
 	if (name === "todo") {
 		const what = Array.isArray(args?.items) ? args.items.join(", ") : Array.isArray(args?.ids) ? args.ids.join(" ") : "";

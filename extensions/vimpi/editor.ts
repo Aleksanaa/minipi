@@ -49,7 +49,7 @@ import {
 	wordEnd,
 	wordForward,
 } from "./motions.ts";
-import { borderRow, fmtTokens, type Seg, shortModel, state, thinkingTag } from "./status.ts";
+import { borderRow, fmtTokens, KEY, type Seg, shortModel, state, thinkingTag } from "./status.ts";
 import { toggleTodos } from "./todo.ts";
 import { completeCommand, EX_ALIASES, LEADER, type LeaderEntry, showHelp, whichKeyWidget } from "./ui.ts";
 
@@ -866,7 +866,7 @@ export class VimEditor extends CustomEditor {
 
 	private modeGlyph(theme: Theme): string {
 		if (this.leader) return theme.fg("warning", theme.bold("L"));
-		return this.mode === "insert" ? theme.fg("success", theme.bold("I")) : theme.fg("accent", theme.bold("N"));
+		return this.mode === "insert" ? theme.fg("success", theme.bold("I")) : theme.fg(KEY, theme.bold("N"));
 	}
 
 	private denseStatus(theme: Theme, room: number): string {
@@ -875,7 +875,7 @@ export class VimEditor extends CustomEditor {
 			if (text) segs.push({ text, pri, order });
 		};
 		if (this.flash) add(theme.fg(this.flash.error ? "error" : "muted", this.flash.text), 9, 0);
-		if (this.keys.length) add(theme.fg("warning", this.keys.join("")), 9, 1);
+		if (this.keys.length) add(theme.fg(KEY, this.keys.join("")), 9, 1);
 		const busy = this.raw.workingStatusIndicator;
 		if (busy) add(busy.renderInBorder?.(24), 10, 2);
 		const statuses = state.footer?.getExtensionStatuses();
@@ -913,7 +913,7 @@ export class VimEditor extends CustomEditor {
 		}
 		applyDense(this.tui);
 		const bar = (s: string) => tint(s, width, barBackground(theme), theme);
-		if (this.mode === "cmdline") return [bar(`${theme.fg("warning", ":")}${this.cmd}\x1b[7m \x1b[27m`)];
+		if (this.mode === "cmdline") return [bar(`${theme.fg(KEY, ":")}${this.cmd}\x1b[7m \x1b[27m`)];
 		const lines = super.render(width - 2);
 		const n = Math.max(1, this.raw.renderedVisibleLineCount ?? lines.length - 2);
 		const body = lines.slice(1, 1 + n).map((l, i) => (i === 0 ? `${this.modeGlyph(theme)} ` : "  ") + l.replace(/ +$/, ""));
@@ -957,17 +957,18 @@ export class VimEditor extends CustomEditor {
 		const theme = this.piTheme;
 		if (!theme) return super.renderBottomBorder(width, hiddenLineCount);
 		if (this.mode === "cmdline") {
-			const body = `:${this.cmd}`;
-			const pad = Math.max(0, width - visibleWidth(body) - 1);
-			return `${theme.fg("text", body)}\x1b[7m \x1b[27m${" ".repeat(pad)}`;
+			const pad = Math.max(0, width - visibleWidth(this.cmd) - 2);
+			return `${theme.fg(KEY, ":")}${theme.fg("text", this.cmd)}\x1b[7m \x1b[27m${" ".repeat(pad)}`;
 		}
 		const line = this.borderColor;
 		const badge =
 			this.mode === "insert"
 				? theme.inverse(theme.fg("success", theme.bold(" INSERT ")))
-				: theme.inverse(theme.fg("accent", theme.bold(this.leader ? " LEADER " : " NORMAL ")));
+				: this.leader
+					? theme.inverse(theme.fg("warning", theme.bold(" LEADER ")))
+					: theme.inverse(theme.fg(KEY, theme.bold(" NORMAL ")));
 		const left: Seg[] = [{ text: badge, pri: 10 }];
-		if (this.keys.length) left.push({ text: theme.fg("warning", this.keys.join("")), pri: 9 });
+		if (this.keys.length) left.push({ text: theme.fg(KEY, this.keys.join("")), pri: 9 });
 		if (this.flash) left.push({ text: theme.fg(this.flash.error ? "error" : "muted", this.flash.text), pri: 8 });
 		const right: Seg[] = [];
 		const statuses = state.footer?.getExtensionStatuses();

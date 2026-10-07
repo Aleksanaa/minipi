@@ -22,6 +22,14 @@ export const state = {
 	requestRender: () => {},
 };
 
+/**
+ * Color roles (themes/basic8.json): text = content, muted/dim = chrome,
+ * accent = paths and other things you can open, KEY = keys and commands
+ * you type, warning = busy or attention, success / error = done / failed.
+ * pi themes have no key color; syntaxKeyword (magenta in basic8) stands in.
+ */
+export const KEY = "syntaxKeyword";
+
 export function refreshStats(ctx: ExtensionContext): void {
 	let cost = 0;
 	try {

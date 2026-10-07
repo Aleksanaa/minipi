@@ -30,7 +30,7 @@ import {
 } from "@earendil-works/pi-coding-agent";
 import { type Component, type TUI, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 import { KEEP } from "./dense.ts";
-import { fmtTokens, shortModel, state } from "./status.ts";
+import { fmtTokens, KEY, shortModel, state } from "./status.ts";
 
 // Each fits the 66-column screen after the "tip" label.
 const TIPS = [
@@ -152,10 +152,10 @@ function sections(theme: Theme, width: number, recentRows: number): Section[] {
 	// Title: what and where
 	const branch = state.footer?.getGitBranch();
 	const where =
-		theme.fg("muted", tildify(ctx?.cwd ?? process.cwd())) +
+		theme.fg("accent", tildify(ctx?.cwd ?? process.cwd())) +
 		(branch ? theme.fg("dim", ` (${branch})`) : "") +
 		(start.dirty ? theme.fg("warning", ` *${start.dirty}`) : "");
-	const title = `${theme.fg("accent", theme.bold(`pi ${VERSION}`))}${dim(" · vimpi")}`;
+	const title = `${theme.bold(`pi ${VERSION}`)}${dim(" · vimpi")}`;
 	out.push({ lines: [spread(title, where, width)], pri: 10 });
 
 	// Setup: model, tools, context
@@ -164,7 +164,7 @@ function sections(theme: Theme, width: number, recentRows: number): Section[] {
 	if (model) {
 		const parts = [theme.fg("text", shortModel(model.id)), dim(model.provider)];
 		const think = pi?.getThinkingLevel();
-		if (think && think !== "off") parts.push(theme.fg("accent", think));
+		if (think && think !== "off") parts.push(theme.fg("text", think));
 		if (model.contextWindow) parts.push(dim(`${fmtTokens(model.contextWindow)} ctx`));
 		setup.push(row(theme, "model", parts.join(dim(" · ")), width));
 	} else {
@@ -194,23 +194,23 @@ function sections(theme: Theme, width: number, recentRows: number): Section[] {
 	// Recent sessions in this directory
 	const recent = start.recent.slice(0, recentRows);
 	if (recent.length) {
-		const lines = [spread(theme.fg("muted", "recent"), dim(":recent N opens"), width)];
+		const lines = [spread(theme.fg("muted", "recent"), theme.fg(KEY, ":recent N") + dim(" opens"), width)];
 		recent.forEach((s, i) => {
 			const label = (s.name || s.firstMessage || "(untitled)").replace(/\s+/g, " ").trim();
 			const meta = dim(`${age(s.modified)} · ${s.messageCount} msgs`);
 			const room = width - visibleWidth(meta) - 4;
-			lines.push(spread(`${theme.fg("accent", String(i + 1))} ${truncateToWidth(label, Math.max(8, room), "…")}`, meta, width));
+			lines.push(spread(`${theme.fg(KEY, String(i + 1))} ${truncateToWidth(label, Math.max(8, room), "…")}`, meta, width));
 		});
 		out.push({ lines, pri: 6 });
 	}
 
 	// How to drive it
 	const keys = [
-		`type, ${theme.fg("success", "Enter")}`,
-		`${theme.fg("warning", "Esc")} normal`,
-		`${theme.fg("warning", "SPC")} leader`,
-		`${theme.fg("warning", ":")} command`,
-		`${theme.fg("warning", ":h")} help`,
+		`type, ${theme.fg(KEY, "Enter")}`,
+		`${theme.fg(KEY, "Esc")} normal`,
+		`${theme.fg(KEY, "SPC")} leader`,
+		`${theme.fg(KEY, ":")} command`,
+		`${theme.fg(KEY, ":h")} help`,
 	].join(dim(" · "));
 	out.push({ lines: [truncateToWidth(keys, width, "…")], pri: 9 });
 	out.push({ lines: [truncateToWidth(`${theme.fg("muted", "tip")}  ${dim(start.tip)}`, width, "…")], pri: 4 });
