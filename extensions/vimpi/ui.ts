@@ -123,7 +123,8 @@ export function whichKeyWidget(entries: LeaderEntry[]) {
 
 function helpLines(theme: Theme): string[] {
 	const h = (s: string) => theme.fg("accent", theme.bold(s));
-	const k = (keys: string, desc: string) => `  ${theme.fg("warning", keys.padEnd(18))}${theme.fg("text", desc)}`;
+	// 2 + 21 + longest description (39) still fits 66 columns.
+	const k = (keys: string, desc: string) => `  ${theme.fg("warning", keys.padEnd(21))}${theme.fg("text", desc)}`;
 	const leader = LEADER.map((e) => k(`SPC ${e.key}`, e.label));
 	return [
 		h("NORMAL  (Esc from insert)"),

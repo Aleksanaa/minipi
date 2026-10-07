@@ -41,6 +41,7 @@
           mkdir -p $d
           cp ${./extensions/vimpi}/*.ts $d/
           rm -f $d/*.test.ts
+          install -Dm644 ${./themes/basic8.json} $out/share/pi/themes/basic8.json
         '';
 
       # pi's own example extensions that add no UI rows and are ASCII-only:
@@ -69,7 +70,8 @@
               install | remove | uninstall | update | list | config | auth)
                 exec pi "$@" ;;
             esac
-            exec pi ${flags} --tui-mode fullscreen "$@"
+            # basic8: only the 8 basic ANSI colors. --use-theme lasts for this run only.
+            exec pi ${flags} --theme ${vimpi}/share/pi/themes/basic8.json --use-theme basic8 --tui-mode fullscreen "$@"
           '';
           meta = pkgs.pi-coding-agent.meta // {
             mainProgram = "pi";
