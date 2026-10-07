@@ -4,7 +4,9 @@
  * Glyphs are ASCII plus a few characters present in both Terminus and Hack
  * (─ … · ↑ ↓), so bitmap and plain monospace fonts render everything.
  * Colors: all output is rewritten to the 3-bit SGR codes 30-37/40-47
- * (ansi8.ts); themes/basic8.json picks colors that survive that.
+ * (output.ts); themes/basic8.json picks colors that survive that. pi's
+ * frames are dropped until vimpi is installed, so pi's default UI never
+ * flashes at startup or on session switches.
  *
  * - pi's header becomes a start screen (model, context, recent sessions)
  *   that disappears with the first message; the footer takes zero rows.
@@ -19,11 +21,11 @@
  */
 
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { install8Colors } from "./ansi8.ts";
 import { registerCheckpoints } from "./checkpoint.ts";
 import { VimEditor } from "./editor.ts";
 import { registerGuard } from "./guard.ts";
 import { registerMagic } from "./magic.ts";
+import { holdOutput, releaseOutput } from "./output.ts";
 import { registerRecentCommand, refreshStart, startScreen } from "./start.ts";
 import { refreshStats, state } from "./status.ts";
 import { registerTodo, todoWidget } from "./todo.ts";
@@ -33,8 +35,7 @@ function install(ctx: ExtensionContext): void {
 	if (ctx.mode !== "tui") return;
 	ctx.ui.setEditorComponent((tui, theme, keybindings) => {
 		state.requestRender = () => tui.requestRender();
-		install8Colors(tui.terminal);
-		tui.requestRender(true); // repaint rows already drawn with 256-color codes
+		releaseOutput(tui);
 		return new VimEditor(tui, theme, keybindings);
 	});
 	ctx.ui.setHeader(startScreen);
@@ -50,6 +51,8 @@ function install(ctx: ExtensionContext): void {
 }
 
 export default function vimpi(pi: ExtensionAPI): void {
+	// Runs before pi's first frame, at startup and for every new session.
+	holdOutput();
 	state.pi = pi;
 	registerCompactTools(pi);
 	registerRecentCommand(pi);
@@ -65,6 +68,7 @@ export default function vimpi(pi: ExtensionAPI): void {
 	});
 	pi.on("session_shutdown", () => {
 		state.ctx = undefined;
+		holdOutput(); // pi resets to its default UI next
 	});
 
 	const refresh = (_event: unknown, ctx: ExtensionContext) => {

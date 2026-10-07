@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { install8Colors, to8Colors } from "./ansi8.ts";
+import { attachOutput, holdOutput, releaseOutput, to8Colors } from "./output.ts";
 
 const E = "\x1b[";
 
@@ -21,11 +21,21 @@ test("non-color sequences pass through", () => {
 	assert.equal(to8Colors(s), s);
 });
 
-test("install wraps write once", () => {
+test("a hold drops frames only, until release repaints", () => {
 	const out: string[] = [];
-	const term = { write: (d: string) => void out.push(d) };
-	install8Colors(term);
-	install8Colors(term);
-	term.write(`${E}38;5;2mok`);
-	assert.deepEqual(out, [`${E}32mok`]);
+	const renders: (boolean | undefined)[] = [];
+	const stream = { write: (d: string) => out.push(d) > 0 };
+	const hook = attachOutput(stream);
+	assert.equal(attachOutput(stream), hook);
+	const frame = `${E}?2026h${E}38;5;2mpi default ui${E}?2026l`;
+	const setup = `${E}?1049h${E}2J`;
+	const teardown = `${E}?2026h${E}?1049l${E}?25h${E}?2026l`;
+	holdOutput(hook);
+	stream.write(frame);
+	stream.write(setup);
+	stream.write(teardown);
+	releaseOutput({ requestRender: (f) => void renders.push(f) }, hook);
+	stream.write(frame);
+	assert.deepEqual(out, [setup, teardown, `${E}?2026h${E}32mpi default ui${E}?2026l`]);
+	assert.deepEqual(renders, [true]);
 });
