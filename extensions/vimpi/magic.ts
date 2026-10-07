@@ -13,7 +13,7 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 type Level = ReturnType<ExtensionAPI["getThinkingLevel"]>;
 
-export const KEYWORDS: Record<string, string> = {
+const KEYWORDS: Record<string, string> = {
 	ultrathink:
 		"The user asked you to ultrathink: reason carefully and step by step, consider alternatives and failure modes, and verify before answering.",
 	stepwise:

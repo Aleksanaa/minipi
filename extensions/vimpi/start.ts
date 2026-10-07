@@ -42,7 +42,9 @@ const TIPS = [
 	"gg / G on a one-line prompt: transcript top / bottom",
 	":!cmd runs a shell command into the transcript",
 	"Esc twice stops a running agent",
-	"SPC d toggles dense / compact; /vim turns vimpi off",
+	"SPC d toggles dense / compact",
+	"SPC l shows the whole todo list",
+	"ultrathink, stepwise or tldr in a prompt steer that run",
 	"daw deletes a word and its space",
 	":m sonnet picks a model by fuzzy name",
 	"u undoes a whole insert; ctrl+r redoes it",
@@ -116,7 +118,7 @@ export function refreshStart(pi: ExtensionAPI, ctx: ExtensionContext): void {
 		.catch(() => {});
 }
 
-export function hasMessages(ctx: ExtensionContext | undefined): boolean {
+function hasMessages(ctx: ExtensionContext | undefined): boolean {
 	try {
 		return !!ctx?.sessionManager.getBranch().some((e) => e.type === "message");
 	} catch {
@@ -220,7 +222,7 @@ export function startScreen(tui: TUI, theme: Theme): Component {
 	return {
 		invalidate() {},
 		render(width: number): string[] {
-			if (!state.enabled || hasMessages(state.ctx)) return [];
+			if (hasMessages(state.ctx)) return [];
 			const w = Math.max(10, width - 2);
 			const avail = Math.max(3, tui.terminal.rows - 2);
 			let recentRows = 5;

@@ -3,6 +3,8 @@
  *
  * Glyphs are ASCII plus a few characters present in both Terminus and Hack
  * (─ … · ↑ ↓), so bitmap and plain monospace fonts render everything.
+ * Colors: all output is rewritten to the 3-bit SGR codes 30-37/40-47
+ * (ansi8.ts); themes/basic8.json picks colors that survive that.
  *
  * - pi's header becomes a start screen (model, context, recent sessions)
  *   that disappears with the first message; the footer takes zero rows.
@@ -14,56 +16,37 @@
  *   (ultrathink, stepwise, tldr).
  * - Git checkpoints per prompt, offered back on /fork; writes to .env,
  *   .git/ and node_modules/ are blocked.
- *
- * `/vim` toggles the whole UI off and on.
  */
 
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import { install8Colors } from "./ansi8.ts";
 import { registerCheckpoints } from "./checkpoint.ts";
-import { removeDense, showResourceListing } from "./dense.ts";
 import { VimEditor } from "./editor.ts";
 import { registerGuard } from "./guard.ts";
 import { registerMagic } from "./magic.ts";
 import { registerRecentCommand, refreshStart, startScreen } from "./start.ts";
 import { refreshStats, state } from "./status.ts";
-import { installTodoWidget, registerTodo, uninstallTodoWidget } from "./todo.ts";
+import { registerTodo, todoWidget } from "./todo.ts";
 import { registerCompactTools } from "./tools.ts";
-
-const empty = () => ({ render: (): string[] => [], invalidate() {} });
 
 function install(ctx: ExtensionContext): void {
 	if (ctx.mode !== "tui") return;
 	ctx.ui.setEditorComponent((tui, theme, keybindings) => {
-		state.tui = tui;
 		state.requestRender = () => tui.requestRender();
+		install8Colors(tui.terminal);
+		tui.requestRender(true); // repaint rows already drawn with 256-color codes
 		return new VimEditor(tui, theme, keybindings);
 	});
 	ctx.ui.setHeader(startScreen);
 	ctx.ui.setFooter((tui, _theme, footer) => {
 		state.footer = footer;
-		const unsubscribe = footer.onBranchChange(() => tui.requestRender());
-		return { ...empty(), dispose: unsubscribe };
+		return { render: () => [], invalidate() {}, dispose: footer.onBranchChange(() => tui.requestRender()) };
 	});
 	ctx.ui.setHiddenThinkingLabel("· thinking");
 	// pi's default spinner is braille, which Hack lacks.
 	ctx.ui.setWorkingIndicator({ frames: ["-", "\\", "|", "/"], intervalMs: 120 });
-	installTodoWidget(ctx);
+	ctx.ui.setWidget("vimpi-todo", todoWidget);
 	refreshStats(ctx);
-}
-
-function uninstall(ctx: ExtensionContext): void {
-	if (state.tui) {
-		removeDense(state.tui);
-		showResourceListing(state.tui);
-	}
-	ctx.ui.setEditorComponent(undefined);
-	ctx.ui.setHeader(undefined);
-	ctx.ui.setFooter(undefined);
-	ctx.ui.setWidget("vimpi", undefined);
-	uninstallTodoWidget(ctx);
-	ctx.ui.setHiddenThinkingLabel();
-	ctx.ui.setWorkingIndicator();
-	state.footer = undefined;
 }
 
 export default function vimpi(pi: ExtensionAPI): void {
@@ -78,7 +61,7 @@ export default function vimpi(pi: ExtensionAPI): void {
 	pi.on("session_start", (_event, ctx) => {
 		state.ctx = ctx;
 		refreshStart(pi, ctx);
-		if (state.enabled) install(ctx);
+		install(ctx);
 	});
 	pi.on("session_shutdown", () => {
 		state.ctx = undefined;
@@ -94,15 +77,4 @@ export default function vimpi(pi: ExtensionAPI): void {
 	pi.on("thinking_level_select", refresh);
 	pi.on("session_compact", refresh);
 	pi.on("session_tree", refresh);
-
-	pi.registerCommand("vim", {
-		description: "Toggle the vimpi compact modal UI",
-		handler: async (_args, ctx) => {
-			state.enabled = !state.enabled;
-			state.ctx = ctx;
-			if (state.enabled) install(ctx);
-			else uninstall(ctx);
-			ctx.ui.notify(`vimpi ${state.enabled ? "on" : "off"}`, "info");
-		},
-	});
 }

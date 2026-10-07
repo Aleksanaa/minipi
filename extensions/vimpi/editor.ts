@@ -53,7 +53,7 @@ import { borderRow, fmtTokens, type Seg, shortModel, state, thinkingTag } from "
 import { toggleTodos } from "./todo.ts";
 import { completeCommand, EX_ALIASES, LEADER, type LeaderEntry, showHelp, whichKeyWidget } from "./ui.ts";
 
-export type Mode = "insert" | "normal" | "cmdline";
+type Mode = "insert" | "normal" | "cmdline";
 
 const MORE = Symbol("more");
 const BAD = Symbol("bad");
@@ -78,7 +78,7 @@ const NAMED: [KeyId, string][] = [
 ];
 
 /** Normalize raw terminal input to a vim-style key token, or undefined for keys we never interpret. */
-export function tokenize(data: string): string | undefined {
+function tokenize(data: string): string | undefined {
 	for (const [id, tok] of NAMED) if (matchesKey(data, id)) return tok;
 	for (const c of CTRL) if (matchesKey(data, `ctrl+${c}` as KeyId)) return `<C-${c}>`;
 	if (!data.startsWith("\x1b") && [...data].length === 1 && data >= " " && data !== "\x7f") return data;
@@ -912,7 +912,7 @@ export class VimEditor extends CustomEditor {
 			return super.render(width);
 		}
 		applyDense(this.tui);
-		const bar = (s: string) => tint(s, width, barBackground(theme));
+		const bar = (s: string) => tint(s, width, barBackground(theme), theme);
 		if (this.mode === "cmdline") return [bar(`${theme.fg("warning", ":")}${this.cmd}\x1b[7m \x1b[27m`)];
 		const lines = super.render(width - 2);
 		const n = Math.max(1, this.raw.renderedVisibleLineCount ?? lines.length - 2);
@@ -979,9 +979,19 @@ export class VimEditor extends CustomEditor {
 	}
 }
 
-/** Paint a full-width background behind a styled line, surviving inner SGR resets. */
-function tint(line: string, width: number, bg: string): string {
-	const body = line.replace(/\x1b\[0?m|\x1b\[49m/g, (m) => m + bg);
+/**
+ * Paint a full-width background behind a styled line, surviving inner SGR
+ * resets. Text in the bar's own color (e.g. blue "dim" on a blue bar in an
+ * 8-color theme) would vanish, so it is redrawn in the first readable of
+ * muted / text / terminal default.
+ */
+function tint(line: string, width: number, bg: string, theme: Theme): string {
+	const clash = bg.replace("\x1b[48;", "\x1b[38;");
+	let body = line.replace(/\x1b\[0?m|\x1b\[49m/g, (m) => m + bg);
+	if (bg && clash !== bg) {
+		const readable = [theme.getFgAnsi("muted"), theme.getFgAnsi("text")].find((a) => a !== clash) ?? "\x1b[39m";
+		body = body.split(clash).join(readable);
+	}
 	return `${bg}${body}${" ".repeat(Math.max(0, width - visibleWidth(line)))}\x1b[0m`;
 }
 

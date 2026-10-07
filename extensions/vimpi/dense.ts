@@ -7,7 +7,8 @@
  * distinct already, so they need no spacing. User-prompt padding rows carry
  * OSC 133 markers that [[ / ]] rely on; those markers move to a kept line.
  *
- * Both hooks are applied to this TUI instance only and fully reversible.
+ * Both hooks are applied to this TUI instance only and undone when
+ * switching to the compact density.
  */
 
 import type { TUI } from "@earendil-works/pi-tui";
@@ -72,11 +73,7 @@ export function densify(lines: string[]): string[] {
 
 type Renderable = { render: (w: number) => string[] };
 
-interface Patched {
-	undo: (() => void)[];
-}
-
-const patched = new WeakMap<object, Patched>();
+const patched = new WeakMap<object, (() => void)[]>();
 
 /** Wrap a component's render on this instance only; returns the undo. */
 function wrapRender(c: Renderable, f: (lines: string[]) => string[]): () => void {
@@ -117,16 +114,16 @@ export function applyDense(tui: TUI): void {
 		const above = entries[slotIdx - 1]?.component;
 		if (above && typeof above.render === "function") undo.push(wrapRender(above, dropLeadingBlanks));
 	}
-	patched.set(root, { undo });
+	patched.set(root, undo);
 	t.requestRender?.();
 }
 
 export function removeDense(tui: TUI): void {
 	const t = tui as Any;
 	const root = t.layoutRoot;
-	const p = root && patched.get(root);
-	if (!p) return;
-	for (const u of p.undo) u();
+	const undo = root && patched.get(root);
+	if (!undo) return;
+	for (const u of undo) u();
 	patched.delete(root);
 	t.requestRender?.();
 }
@@ -152,7 +149,7 @@ export function dropInventory(lines: string[]): string[] {
 	return out;
 }
 
-const listings = new WeakMap<object, () => void>();
+const listings = new WeakSet<object>();
 
 /**
  * The start screen summarizes loaded resources, so pi's own listing (the
@@ -163,12 +160,7 @@ export function hideResourceListing(tui: TUI): void {
 	if (!root || listings.has(root)) return;
 	const listing = root.entries?.[0]?.component?.child?.children?.[1];
 	if (!listing || typeof listing.render !== "function") return;
-	listings.set(root, wrapRender(listing, dropInventory));
+	listings.add(root);
+	wrapRender(listing, dropInventory);
 	(tui as Any).requestRender?.();
-}
-
-export function showResourceListing(tui: TUI): void {
-	const root = (tui as Any).layoutRoot;
-	listings.get(root)?.();
-	if (root) listings.delete(root);
 }

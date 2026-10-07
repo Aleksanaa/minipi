@@ -15,7 +15,7 @@ export interface Register {
 	linewise: boolean;
 }
 
-export interface Edit {
+interface Edit {
 	text: string;
 	cursor: number;
 }

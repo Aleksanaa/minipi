@@ -4,23 +4,21 @@
  */
 
 import type { ExtensionAPI, ExtensionContext, ReadonlyFooterDataProvider, Theme } from "@earendil-works/pi-coding-agent";
-import { type TUI, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
+import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 
-export interface Stats {
+interface Stats {
 	cost: number;
 	percent: number | null;
 	window: number;
 }
 
 export const state = {
-	enabled: true,
 	/** "dense": one-row input bar, no spacer rows. "compact": bordered editor. */
 	density: "dense" as "dense" | "compact",
 	pi: undefined as ExtensionAPI | undefined,
 	ctx: undefined as ExtensionContext | undefined,
 	footer: undefined as ReadonlyFooterDataProvider | undefined,
 	stats: { cost: 0, percent: null, window: 0 } as Stats,
-	tui: undefined as TUI | undefined,
 	requestRender: () => {},
 };
 

@@ -41,11 +41,10 @@ function rebuild(ctx: ExtensionContext): void {
 	state.requestRender();
 }
 
-function widget(_tui: unknown, theme: Theme): Component {
+export function todoWidget(_tui: unknown, theme: Theme): Component {
 	return {
 		invalidate() {},
 		render(width: number): string[] {
-			if (!state.enabled) return [];
 			const { done, total, next } = progress(list);
 			if (expanded) {
 				if (!total) return [theme.fg("dim", "no todos")];
@@ -61,14 +60,6 @@ function widget(_tui: unknown, theme: Theme): Component {
 			return [truncateToWidth(head + theme.fg("text", next.text), width, "…")];
 		},
 	};
-}
-
-export function installTodoWidget(ctx: ExtensionContext): void {
-	ctx.ui.setWidget("vimpi-todo", widget);
-}
-
-export function uninstallTodoWidget(ctx: ExtensionContext): void {
-	ctx.ui.setWidget("vimpi-todo", undefined);
 }
 
 export function toggleTodos(): void {

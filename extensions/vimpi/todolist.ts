@@ -14,7 +14,7 @@ export interface TodoList {
 	nextId: number;
 }
 
-export type TodoAction = "list" | "add" | "done" | "undo" | "remove" | "clear";
+type TodoAction = "list" | "add" | "done" | "undo" | "remove" | "clear";
 
 export interface TodoParams {
 	action: TodoAction;

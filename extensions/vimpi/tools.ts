@@ -16,7 +16,7 @@ import { type Component, truncateToWidth, visibleWidth } from "@earendil-works/p
 import { homedir } from "node:os";
 import { relative } from "node:path";
 import { TOOL } from "./dense.ts";
-import { state, truncMid } from "./status.ts";
+import { truncMid } from "./status.ts";
 
 // biome-ignore lint/suspicious/noExplicitAny: renderers are shared by all tools
 type AnyDef = ToolDefinition<any, any, any>;
@@ -185,31 +185,20 @@ function bodyLines(name: string, args: Args, row: Row, expanded: boolean, theme:
 }
 
 export function registerCompactTools(pi: ExtensionAPI): void {
-	pi.registerToolRenderer((name, next) => {
-		if (!state.enabled) return next();
-		// Rows created while enabled stay "self"-framed; delegate their content if toggled off later.
-		const fallback = () => next();
-		return {
-			renderShell: "self",
-			renderCall(args, theme, rc) {
-				if (!state.enabled) {
-					const r = fallback()?.renderCall;
-					return r ? r(args, theme, rc) : new Lines(() => [theme.fg("toolTitle", theme.bold(name))]);
-				}
-				return new Lines((w) => [callLine(name, args as Args, rc, theme, w)]);
-			},
-			renderResult(result, opts, theme, rc) {
-				const r = fallback()?.renderResult;
-				if (!state.enabled && r) return r(result, opts, theme, rc);
-				const row = rc.state as Row;
-				const text = result.content.find((c) => c.type === "text");
-				row.done = !opts.isPartial;
-				row.isError = rc.isError;
-				row.text = text?.type === "text" ? text.text : undefined;
-				row.details = result.details;
-				row.image = result.content.some((c) => c.type === "image");
-				return new Lines(() => bodyLines(name, rc.args as Args, row, opts.expanded, theme));
-			},
-		};
-	});
+	pi.registerToolRenderer((name) => ({
+		renderShell: "self",
+		renderCall(args, theme, rc) {
+			return new Lines((w) => [callLine(name, args as Args, rc, theme, w)]);
+		},
+		renderResult(result, opts, theme, rc) {
+			const row = rc.state as Row;
+			const text = result.content.find((c) => c.type === "text");
+			row.done = !opts.isPartial;
+			row.isError = rc.isError;
+			row.text = text?.type === "text" ? text.text : undefined;
+			row.details = result.details;
+			row.image = result.content.some((c) => c.type === "image");
+			return new Lines(() => bodyLines(name, rc.args as Args, row, opts.expanded, theme));
+		},
+	}));
 }
